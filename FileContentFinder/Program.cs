@@ -8,28 +8,36 @@ using System.Web;
 using System.Runtime.CompilerServices;
 using System.Data;
 using System.Threading;
+using System.Collections.Specialized;
 
 namespace FileContentFinder
 {
     internal class Program
     {
+        public static List<string> returnArray = new List<string>();
+        public static string operation = "";
         static void Main(string[] args)
         {
-            
-            void RAWTC(string dir, string keyword, Boolean log)
+            void RAWTC(string dir, string keyword, Boolean log, Boolean findContent) // FindContent finds content within the file, otherwise its a keyword within the name of the file
             {
                 if (log)
                 {
                     if(File.Exists(dir))
-                    {
-                        if (dir.Contains(keyword))
+                    { 
+                        if(findContent)
                         {
-                            Console.WriteLine(dir + " contains " + keyword + " (true)");
-                        }
-                        else
+                            if (File.ReadAllText(dir).Contains(keyword))
+                            {
+                                Console.WriteLine(dir + " contains '" + keyword + "'");
+                            }
+                        } else
                         {
-                            Console.WriteLine("None found");
+                            if (dir.Contains(keyword))
+                            {
+                                Console.WriteLine(dir + " contains '" + keyword + "'");
+                            }
                         }
+                        
                     } else
                     {
                         Console.WriteLine(dir + " doesnt exist!");
@@ -42,75 +50,102 @@ namespace FileContentFinder
             {
                 if (operation.ToUpper() == "FILES")
                 {
-                    List<string> temp = getAllDirEntries(rawDir, returnType.Files,true);
-                    foreach(string file in temp.ToArray())
+                    List<string> temp = getAllDirEntries(rawDir, returnType.Files, true);
+                    foreach (string file in temp.ToArray())
                     {
                         Console.WriteLine(file);
                     }
                 }
                 else if (operation.ToUpper() == "FOLDERS")
                 {
-                    List<string> temp = getAllDirEntries(rawDir, returnType.Folders,true);
-                    foreach(string folder in temp.ToArray())
+                    List<string> temp = getAllDirEntries(rawDir, returnType.Folders, true);
+                    foreach (string folder in temp.ToArray())
                     {
                         Console.WriteLine(folder);
                     }
                 }
                 else if (operation.ToUpper() == "ENTRIES")
                 {
-                    List<string> temp = getAllDirEntries(rawDir, returnType.Entries,true);
-                    foreach(string entry in temp.ToArray())
+                    List<string> temp = getAllDirEntries(rawDir, returnType.Entries, true);
+                    foreach (string entry in temp.ToArray())
                     {
                         Console.WriteLine(entry);
                     }
                 }
-                else if (operation.ToUpper() == "KEYWORDS")
+                else if (operation.ToUpper().Contains("KEYWORD"))
                 {
                     Console.WriteLine("Please enter a keyword : ");
                     string keyword = Console.ReadLine();
                     Console.WriteLine("Finding " + keyword);
                     List<string> files = getAllDirEntries(rawDir, returnType.Files, false);
-                    foreach(string file in files.ToArray())
-                    {
-                        Console.WriteLine(file);
-                    }
+                    if(operation.ToUpper() == "KEYWORDN")
+                        {
+                            foreach (string file in returnArray.ToArray())
+                            {
+                                RAWTC(file, keyword, true, false);
+                            }
+                        } else if (operation.ToUpper() == "KEYWORDC")
+                        {
+                            foreach (string file in returnArray.ToArray())
+                            {
+                                RAWTC(file, keyword, true, true);
+                            }
+                        } else
+                        {
+                            Console.WriteLine("Invalid operation, please input KEYWORDN, or KEYWORDC.");
+                            checkOp(rawDir);
+                        }
                     
-                }
+                    }
                 else
                 {
-                    Console.WriteLine("Please enter either: FILES, FOLDERS, ENTRIES, or KEYWORDS.");
-                    typeDetermine(operation, rawDir);
+                    Console.WriteLine("Please enter either: FILES, FOLDERS, ENTRIES, or KEYWORDN/KEYWORDC.");
+                    checkOp(rawDir);
                 }
             }
+            void checkOp(string rawDir)
+            {
+                operation = Console.ReadLine();
+                if (operation.ToUpper() == "FILES" || operation.ToUpper() == "FOLDERS" || operation.ToUpper() == "ENTRIES" || operation.ToUpper() == "KEYWORDN" || operation.ToUpper() == "KEYWORDC")
+                    {
+                        typeDetermine(operation, rawDir);
+                    }
+                else
+                    {
+                        Console.WriteLine("Please enter either: FILES, FOLDERS, ENTRIES, or KEYWORDN/KEYWORDC.");
+                        checkOp(rawDir);
+                    }
+                }
             void fcf()
             {
-
+                returnArray.Clear();
+                
                 Console.WriteLine("Please input a VALID path : ");
                 string rawDir = Console.ReadLine();
                 if (Directory.Exists(rawDir))
-                {
-                    Console.WriteLine("Found '" + rawDir + "'");
-
-                    Console.WriteLine("Find FILES, FOLDERS, or ENTRIES (Both) within a base directory | Find KEYWORDS in files within a base directory. Please type your choice  (The Captitalized words)");
-                    string operation = Console.ReadLine();
-
-                    typeDetermine(operation, rawDir);
-
-                    Console.WriteLine(); // Space out 
-                    Console.WriteLine("Would you like to do another directory? Y or N.");
-                    string usrAgain = Console.ReadLine();
-                    if (usrAgain.ToUpper() == "Y")
                     {
-                        fcf();
-                    } else if (usrAgain.ToUpper() == "N")
-                    {
-                        Environment.Exit(0);
-                    } else
-                    {
-                        Console.WriteLine("Please input Y or N.");
+                        Console.WriteLine("Found '" + rawDir + "'");
+
+                        Console.WriteLine("Find FILES, FOLDERS, or ENTRIES (Both) within a base directory | Find KEYWORD (KEYWORDN for within the name, KEYWORDC for within the file) in files within a base directory.");
+                        Console.WriteLine("Please input either: FILES, FOLDERS, ENTRIES, KEYWORDN, or KEYWORDC.");
+                        checkOp(rawDir);
+
+                        Console.WriteLine("\n\n"); // Space out 
+
+                        Console.WriteLine("Would you like to process another directory? Y or N.");
+                        string usrAgain = Console.ReadLine();
+                        if (usrAgain.ToUpper() == "Y")
+                        {
+                            fcf();
+                        } else if (usrAgain.ToUpper() == "N")
+                        {
+                            Environment.Exit(0);
+                        } else
+                        {
+                            Console.WriteLine("Please input Y or N.");
+                        }
+
                     }
-
-                }
                 else
                 {
                     Console.WriteLine(rawDir + " doesnt exist!");
@@ -126,11 +161,8 @@ namespace FileContentFinder
             Files,
             Entries
             }
-
         static List<string> getAllDirEntries(string directory, returnType rT, bool log)
             {
-            
-            List<string> returnArray = new List<string>();
             if (Directory.Exists(directory))
             {
                 string[] baseSubDirectories = Directory.GetDirectories(directory); // For if the function needs to run again to get the next dir entries
